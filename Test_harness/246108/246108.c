@@ -28,7 +28,7 @@
  */
 
 #include <sys/cdefs.h>
-__FBSDID("$FreeBSD$");
+__FBSDID("$FreeBSD: head/sys/amd64/vmm/vmm_instruction_emul.c 246108 2013-01-30 04:09:09Z neel $");
 
 #ifdef _KERNEL
 #include <sys/param.h>
@@ -45,9 +45,14 @@ __FBSDID("$FreeBSD$");
 #include <sys/types.h>
 #include <sys/errno.h>
 
+#ifdef _VERIFICATION
+#include "vmm_stubs.h"
+#else   /* !_VERIFICATION */
+
 #include <machine/vmm.h>
 
 #include <vmmapi.h>
+#endif  /* _VERIFICATION */
 #endif	/* _KERNEL */
 
 
@@ -526,6 +531,10 @@ vmm_fetch_instruction(struct vm *vm, int cpuid, uint64_t rip, int inst_length,
 		return (-1);
 }
 
+#endif /* _KERNEL */
+
+#if defined(_KERNEL) || defined(_VERIFICATION)
+
 static int
 vie_peek(struct vie *vie, uint8_t *x)
 {
@@ -612,7 +621,8 @@ decode_modrm(struct vie *vie)
 		 * Table 2-5: Special Cases of REX Encodings
 		 *
 		 * mod=0, r/m=5 is used in the compatibility mode to
-		 * indicate a disp32 without a base register.
+		 * indicate a disp32 without a base register, and in
+		 * long mode to indicate a disp32 from the RIP
 		 *
 		 * mod!=3, r/m=4 is used in the compatibility mode to
 		 * indicate that the SIB byte is present.
@@ -642,12 +652,16 @@ decode_modrm(struct vie *vie)
 	case VIE_MOD_INDIRECT:
 		if (vie->rm == VIE_RM_DISP32) {
 			vie->disp_bytes = 4;
+			vie->base_register = VM_REG_GUEST_RIP;
+#if 0
+			/* XXX compat mode ??? */
 			vie->base_register = VM_REG_LAST;	/* no base */
+#endif
 		}
 		break;
 	}
-
-	/* Figure out immediate operand size (if any) */
+		
+    /* Figure out immediate operand size (if any) */
 	if (vie->op.op_flags & VIE_OP_F_IMM)
 		vie->imm_bytes = 4;
 	else if (vie->op.op_flags & VIE_OP_F_IMM8)
@@ -810,6 +824,12 @@ verify_gla(struct vm *vm, int cpuid, uint64_t gla, struct vie *vie)
 				error, vie->base_register);
 			return (-1);
 		}
+		/*
+		 * RIP-relative addressing starts from the following
+		 * instruction
+		 */
+		if (vie->base_register == VM_REG_GUEST_RIP)
+			base += vie->num_valid;
 	}
 
 	idx = 0;
@@ -865,4 +885,4 @@ vmm_decode_instruction(struct vm *vm, int cpuid, uint64_t gla, struct vie *vie)
 
 	return (0);
 }
-#endif	/* _KERNEL */
+#endif	/* _KERNEL || _VERIFICATION */
