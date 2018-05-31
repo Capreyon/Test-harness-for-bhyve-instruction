@@ -27,6 +27,12 @@
  * $FreeBSD$
  */
 
+/*Add emulation support for instruction "88/r: mov r/m8, r8".
+
+This instruction moves a byte from a register to a memory location.
+
+Tested by: tycho nightingale at pluribusnetworks com*/
+
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD: head/sys/amd64/vmm/vmm_instruction_emul.c 246108 2013-01-30 04:09:09Z neel $");
 
