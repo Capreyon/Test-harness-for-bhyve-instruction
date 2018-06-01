@@ -26,6 +26,25 @@
  *
  * $FreeBSD$
  */
+/*Revamp the x86 instruction emulation in bhyve.
+
+On a nested page table fault the hypervisor will:
+- fetch the instruction using the guest %rip and %cr3
+- decode the instruction in 'struct vie'
+- emulate the instruction in host kernel context for local apic accesses
+- any other type of mmio access is punted up to user-space (e.g. ioapic)
+
+The decoded instruction is passed as collateral to the user-space process
+that is handling the PAGING exit.
+
+The emulation code is fleshed out to include more addressing modes (e.g. SIB)
+and more types of operands (e.g. imm8). The source code is unified into a
+single file (vmm_instruction_emul.c) that is compiled into vmm.ko as well
+as /usr/sbin/bhyve.
+
+Reviewed by:	grehan
+Obtained from:	NetApp
+*/
 
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
@@ -45,10 +64,16 @@ __FBSDID("$FreeBSD$");
 #include <sys/types.h>
 #include <sys/errno.h>
 
+#ifdef _VERIFICATION
+#include "vmm_stubs.h"
+#else   /* !_VERIFICATION */
+
 #include <machine/vmm.h>
 
 #include <vmmapi.h>
 #endif	/* _KERNEL */
+#endif  /* _VERIFICATION */
+
 
 
 
@@ -435,6 +460,10 @@ vmm_fetch_instruction(struct vm *vm, int cpuid, uint64_t rip, int inst_length,
 		return (-1);
 }
 
+#endif /* _KERNEL */
+
+#if defined(_KERNEL) || defined(_VERIFICATION)
+
 static int
 vie_peek(struct vie *vie, uint8_t *x)
 {
@@ -772,4 +801,4 @@ vmm_decode_instruction(struct vm *vm, int cpuid, uint64_t gla, struct vie *vie)
 
 	return (0);
 }
-#endif	/* _KERNEL */
+#endif	/* _KERNEL || _VERIFICATION */
