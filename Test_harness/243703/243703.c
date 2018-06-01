@@ -27,6 +27,14 @@
  * $FreeBSD$
  */
 
+/*Properly screen for the AND 0x81 instruction from the set
+of group1 0x81 instructions that use the reg bits as an
+extended opcode.
+
+Still todo: properly update rflags.
+
+Pointed out by:	jilles@ */
+
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
@@ -45,9 +53,14 @@ __FBSDID("$FreeBSD$");
 #include <sys/types.h>
 #include <sys/errno.h>
 
+#ifdef _VERIFICATION
+#include "vmm_stubs.h"
+#else   /* !_VERIFICATION */
+
 #include <machine/vmm.h>
 
 #include <vmmapi.h>
+#endif  /* _VERIFICATION */
 #endif	/* _KERNEL */
 
 
@@ -470,6 +483,12 @@ vmm_fetch_instruction(struct vm *vm, int cpuid, uint64_t rip, int inst_length,
 		return (-1);
 }
 
+
+#endif /* _KERNEL */
+
+#if defined(_KERNEL) || defined(_VERIFICATION)
+
+
 static int
 vie_peek(struct vie *vie, uint8_t *x)
 {
@@ -807,4 +826,4 @@ vmm_decode_instruction(struct vm *vm, int cpuid, uint64_t gla, struct vie *vie)
 
 	return (0);
 }
-#endif	/* _KERNEL */
+#endif	/* _KERNEL || _VERIFICATION */
