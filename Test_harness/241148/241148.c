@@ -27,6 +27,12 @@
  * $FreeBSD$
  */
 
+/*Get rid of assumptions in the hypervisor that the host physical memory
+associated with guest physical memory is contiguous.
+
+Add check to vm_gpa2hpa() that the range indicated by [gpa,gpa+len) is all
+contained within a single 4KB page.*/
+
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
@@ -41,7 +47,9 @@ __FBSDID("$FreeBSD$");
 #include <machine/vmparam.h>
 #include <machine/vmm.h>
 
-#include "vmm_instruction_emul.h"
+#ifdef _VERIFICATION
+#include "vmm_stubs.h"
+#else   /* !_VERIFICATION */
 
 #define	GB	(1024 * 1024 * 1024)
 
@@ -168,6 +176,9 @@ vmm_fetch_instruction(struct vm *vm, uint64_t rip, int inst_length,
 	else
 		return (-1);
 }
+
+#endif /* _KERNEL */
+#if defined(_KERNEL) || defined(_VERIFICATION)
 
 static int
 vie_peek(struct vie *vie, uint8_t *x)
@@ -390,3 +401,4 @@ vmm_decode_instruction(struct vie *vie)
 
 	return (0);
 }
+#endif	/* _KERNEL || _VERIFICATION */
