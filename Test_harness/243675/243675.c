@@ -27,6 +27,12 @@
  * $FreeBSD$
  */
 
+/*Remove debug printf.
+
+Pointed out by:	emaste */
+
+
+
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
@@ -45,10 +51,15 @@ __FBSDID("$FreeBSD$");
 #include <sys/types.h>
 #include <sys/errno.h>
 
+#ifdef _VERIFICATION
+#include "vmm_stubs.h"
+#else   /* !_VERIFICATION */
+
 #include <machine/vmm.h>
 
 #include <vmmapi.h>
 #endif	/* _KERNEL */
+#endif  /* _VERIFICATION */
 
 
 
@@ -422,6 +433,7 @@ error:
 	return (-1);
 }
 
+
 int
 vmm_fetch_instruction(struct vm *vm, int cpuid, uint64_t rip, int inst_length,
 		      uint64_t cr3, struct vie *vie)
@@ -462,6 +474,11 @@ vmm_fetch_instruction(struct vm *vm, int cpuid, uint64_t rip, int inst_length,
 	else
 		return (-1);
 }
+
+#endif /* _KERNEL */
+
+#if defined(_KERNEL) || defined(_VERIFICATION)
+
 
 static int
 vie_peek(struct vie *vie, uint8_t *x)
@@ -800,4 +817,4 @@ vmm_decode_instruction(struct vm *vm, int cpuid, uint64_t gla, struct vie *vie)
 
 	return (0);
 }
-#endif	/* _KERNEL */
+#endif	/* _KERNEL || _VERIFICATION */
