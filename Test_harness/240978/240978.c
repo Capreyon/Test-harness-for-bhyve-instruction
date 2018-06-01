@@ -35,6 +35,16 @@ instead of having it fetch the instruction bytes from the guest. This is
 useful for hardware assists like SVM that provide the faulting instruction
 as part of the vmexit. */
 
+/*Intel VT-x provides the length of the instruction at the time of the nested
+page table fault. Use this when fetching the instruction bytes from the guest
+memory.
+
+Also modify the lapic_mmio() API so that a decoded instruction is fed into it
+instead of having it fetch the instruction bytes from the guest. This is
+useful for hardware assists like SVM that provide the faulting instruction
+as part of the vmexit. */
+
+
 
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
@@ -50,7 +60,10 @@ __FBSDID("$FreeBSD$");
 #include <machine/vmparam.h>
 #include <machine/vmm.h>
 
-#include "vmm_instruction_emul.h"
+#ifdef _VERIFICATION
+#include "vmm_stubs.h"
+#else   /* !_VERIFICATION */
+
 
 #define	GB	(1024 * 1024 * 1024)
 
@@ -176,6 +189,9 @@ vmm_fetch_instruction(struct vm *vm, uint64_t rip, int inst_length,
 	else
 		return (-1);
 }
+
+#endif /* _KERNEL */
+#if defined(_KERNEL) || defined(_VERIFICATION)
 
 static int
 vie_peek(struct vie *vie, uint8_t *x)
@@ -398,3 +414,4 @@ vmm_decode_instruction(struct vie *vie)
 
 	return (0);
 }
+#endif	/* _KERNEL || _VERIFICATION */
