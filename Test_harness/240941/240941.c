@@ -46,8 +46,9 @@ __FBSDID("$FreeBSD$");
 #include <machine/vmparam.h>
 #include <machine/vmm.h>
 
-#include "vmm_instruction_emul.h"
-
+#ifdef _VERIFICATION
+#include "vmm_stubs.h"
+#else   /* !_VERIFICATION */
 #define	GB	(1024 * 1024 * 1024)
 
 static enum vm_reg_name gpr_map[16] = {
@@ -132,6 +133,9 @@ gla2gpa(struct vm *vm, uint64_t gla, uint64_t ptpphys,
 error:
 	return (-1);
 }
+
+#endif /* _KERNEL */
+#if defined(_KERNEL) || defined(_VERIFICATION)
 
 void
 vmm_fetch_instruction(struct vm *vm, uint64_t rip, uint64_t cr3,
@@ -388,3 +392,4 @@ vmm_decode_instruction(struct vie *vie)
 
 	return (0);
 }
+#endif	/* _KERNEL || _VERIFICATION */
