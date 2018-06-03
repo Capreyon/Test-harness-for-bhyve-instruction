@@ -45,9 +45,14 @@ __FBSDID("$FreeBSD$");
 #include <sys/types.h>
 #include <sys/errno.h>
 
+#ifdef _VERIFICATION
+#include "vmm_stubs.h"
+#else   /* !_VERIFICATION */
+
 #include <machine/vmm.h>
 
 #include <vmmapi.h>
+#endif  /* _VERIFICATION */
 #endif	/* _KERNEL */
 
 enum cpu_mode {
@@ -501,6 +506,10 @@ vmm_fetch_instruction(struct vm *vm, int cpuid, uint64_t rip, int inst_length,
 		return (-1);
 }
 
+#endif /* _KERNEL */
+
+#if defined(_KERNEL) || defined(_VERIFICATION)
+
 static int
 vie_peek(struct vie *vie, uint8_t *x)
 {
@@ -876,4 +885,4 @@ vmm_decode_instruction(struct vm *vm, int cpuid, uint64_t gla, struct vie *vie)
 
 	return (0);
 }
-#endif	/* _KERNEL */
+#endif	/* _KERNEL || _VERIFICATION */
